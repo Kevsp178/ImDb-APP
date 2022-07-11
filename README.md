@@ -4,13 +4,15 @@ This web app allows for the user to search for a movie, view actors and ratings,
 
 It uses react for the front end.
 
-To start use command while in the directory 
+To start use command while in the directory  **(Requires Node and NPM)
 React/frontend:
               /imbd-app/src ---> npm start
+              
+              
 Node/Backend: 
               /Backend--> Node movieserver.js
               
- Requires  (npm install ) --> mongodb, express, body-parser, nodeJS, react-bootstrap, react-router-dom, axios, node-fetch, swagger-ui-express, swagger-jsdoc
+ Requires  (npm install/npm install dotenv ) --> mongodb, express, body-parser, nodeJS, react-bootstrap, react-router-dom, axios, node-fetch, swagger-ui-express, swagger-jsdoc
 
 MongoDB server -> localhost:27017
 
