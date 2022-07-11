@@ -1,4 +1,4 @@
-HW COT 4930 - Full Stack Web Development Jarold Sabillon Z: 23638144
+Jarold Sabillon - An ImDb based web app.
 
 This web app allows for the user to search for a movie, view actors and ratings, and add the movie to a watchlist as well as remove them. 
 
