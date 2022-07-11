@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: allfunctions.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: allfunctions.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+/**
+* Returns top 250 movies in imDb database, buttons return movie ratings and actors. Can add movies to a watchlist.
+* @returns {object} { id: MovieID
+*                     Title : movieTitle
+*                     image: link for poster
+*                      } 
+*
+* @param {string} Title title of movie
+* @param {string} id ID of movie
+* @param {string} image link for poster
+* @returns {object} { status: successfully added to watchlist/failed to add } 
+*   
+* @returns {object} { imDb: rating
+*                     metacritic: rating 
+*                     rottenTomatoes: rating
+*                      } 
+*
+*/
+function ImdbTop250() {
+    let [data, setData] = useState(null);
+    let [watchList, setWatchList] = useState(null);
+    let [image, setImage] = useState(null);
+    let [title, setTitle] = useState(null);
+    let [info, setInfo] = useState(null);
+    let [movieInfo, setMovieInfo] = useState(null);
+    let [rating, setRating] = useState(null);
+    let [Rmovie, setRmovie] = useState(null);
+    const [error, setError] = useState(null);
+
+    /* Sends request to backend to retrieve top 250 movies */
+    let ImdbTop250 = () => {
+        axios.get('http://localhost:5678/GetTop250', {}).then(function (response) {
+            // handle success
+            console.log("top 250 success");
+            setError(false);
+            setData(response.data.items)
+            console.log(response.data.items);
+
+
+        }).catch(function (error) {
+            // handle error    
+            setError("Error")
+
+        })
+    }
+    /*  Sends movie information to mongoDB and stores it */
+    if (watchList != null) {
+        axios.post('http://localhost:5678/postwatchlist',
+            {
+                id: watchList,
+                image: image,
+                title: title
+            }).then(function (response) {
+                // handle success         
+                console.log("sent to watchlist success");
+                setError(false);
+                alert("Successfully added!")
+                console.log(watchList);
+
+                setWatchList(null);
+
+            }).catch(function (error) {
+                // handle error    
+
+                alert("Already in watchlist!")
+                setError("Unexpected Error")
+            })
+    }
+    /*  Sends request backend and gets movie ratings from three different sources    */
+    if (Rmovie != null &amp;&amp; info == null) {
+        console.log(Rmovie);
+        axios.get('http://localhost:5678/MovieRating/' + Rmovie, {}).then(function (response) {
+            // handle success
+            console.log("move rating success");
+            setError(false);
+            setRating(response.data)
+            console.log(response.data);
+        }).catch(function (error) {
+            // handle error    
+            setError("Unexpected Error")
+        })
+        setRmovie(null);
+    }
+    useEffect(() => {
+        ImdbTop250()
+    }, [])
+
+    /*  Maps out data retrieved from backend. Puts each movie into their own tile.
+    *   It is supposed to do the same with the actors and rating but it is updating every tile instead of the single one.
+    */
+    return (
+        &lt;div >
+            {data &amp;&amp; data.length > 0 &amp;&amp; &lt;>
+                {data.map((movie, key) => {
+                    return (
+                        &lt;div key={key} className="container">
+                            &lt;div className="row">
+                                &lt;div className="movies">
+                                    &lt;li>
+                                        &lt;h2>{movie.title}&lt;/h2>
+                                        &lt;h2>{movie.rank}&lt;/h2>
+                                        &lt;img src={movie.image} alt="Poster">&lt;/img>
+
+                                
+                                        &lt;Button onClick={() => {
+                                            setRmovie(movie.id);
+                                        }}>{"Ratings"}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setRating(null);
+                                        }}>{"Remove Ratings"}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setWatchList(movie.id);
+                                            setImage(movie.image);
+                                            setTitle(movie.title);
+                                        }}>{"Add To watchlist"}
+                                        &lt;/Button>
+                                        {rating &amp;&amp; &lt;>
+                                            &lt;table className="table">
+                                                &lt;tbody>
+                                                    &lt;tr style={{ border: 'solid' }}>
+                                                        &lt;td>Imdb rating&lt;/td>
+                                                        &lt;td>metacritic rating&lt;/td>
+                                                        &lt;td>Rotten Tomatoes&lt;/td>
+                                                    &lt;/tr>
+                                                    &lt;tr key={key} style={{ border: 'solid' }}>
+                                                        &lt;td >{rating.imDb}&lt;/td>
+                                                        &lt;td>{rating.metacritic}&lt;/td>
+                                                        &lt;td>{rating.rottenTomatoes}&lt;/td>
+                                                    &lt;/tr>
+                                                &lt;/tbody>
+                                            &lt;/table>
+                                        &lt;/>}
+                                    &lt;/li>
+                                &lt;/div>
+                            &lt;/div>
+                        &lt;/div>
+                    )
+                })}
+            &lt;/>}
+        &lt;/div>
+    )
+}
+
+/**
+* Searches for a movie in imDb database, buttons return movie ratings and actors. Allows to add movies to a watchlist.
+* @param {string} moviename Name of movie 
+* @returns {object} { id: MovieID
+*                     Title : movieTitle
+*                     image: link for poster
+*                      }
+* @returns {object} { image: Link for actor picture 
+*                     Actor-name : actors name
+*                     actorCharacter: Character played as in movie
+*                      }  
+*
+* @param {string} Title title of movie
+* @param {string} id ID of movie
+* @param {string} image link for poster
+* @returns {object} { status: successfully added to watchlist/failed to add } 
+*   
+* @returns {object} { imDb: rating
+*                     metacritic: rating 
+*                     rottenTomatoes: rating
+*                      } 
+*
+*/
+function MovieSearch() {
+    let [data, setData] = useState(null);
+    let [watchList, setWatchList] = useState(null);
+    let [image, setImage] = useState(null);
+    let [title, setTitle] = useState(null);
+    let [movie, setMovie] = useState("");
+    let [info, setInfo] = useState(null);
+    let [movieInfo, setMovieInfo] = useState(null);
+    let [rating, setRating] = useState(null);
+    let [Rmovie, setRmovie] = useState(null);
+
+    const [error, setError] = useState(null);
+
+    /* Sends request to backend to retrieve movie searched for*/
+
+    let Search = (e) => {
+        e.preventDefault();
+        axios.get('http://localhost:5678/SearchMovie/' + movie, {}).then(function (response) {
+            // handle success
+            console.log("Search results");
+            setError(false);
+            setData(response.data.results)
+            console.log(response.data.results);
+        }).catch(function (error) {
+            // handle error    
+            setError("Error")
+        })
+    }
+    /* Sends request to retriece actors of a specific movie */
+    if (movieInfo != null) {
+        axios.get('http://localhost:5678/movieInfo/' + movieInfo, {}).then(function (response) {
+            // handle success
+            console.log("move info success");
+            setError(false);
+            setInfo(response.data.actors)
+            console.log(response.data.actors);
+        }).catch(function (error) {
+            // handle error    
+            setError("Unexpected Error")
+        })
+        setMovieInfo(null);
+    }
+    /*  Sends movie information to mongoDB and stores it */
+    if (watchList != null) {
+        axios.post('http://localhost:5678/postwatchlist',
+            {
+                id: watchList,
+                image: image,
+                title: title
+            }).then(function (response) {
+                // handle success         
+                console.log("sent to watchlist success");
+                setError(false);
+                alert("Successfully added!")
+                console.log(watchList);
+                setWatchList(null);
+            }).catch(function (error) {
+                // handle error    
+                alert("Already in watchlist!")
+                setError("Unexpected Error")
+            })
+    }
+    /*  Sends request backend and gets movie ratings from three different sources    */
+
+    if (Rmovie != null &amp;&amp; info == null) {
+        console.log(Rmovie);
+        axios.get('http://localhost:5678/MovieRating/' + Rmovie, {}).then(function (response) {
+            // handle success
+            console.log("move rating success");
+            setError(false);
+            setRating(response.data)
+            console.log(response.data);
+        }).catch(function (error) {
+            // handle error    
+            setError("Unexpected Error")
+        })
+        setRmovie(null);
+    }
+
+    /*  Maps out data retrieved from backend. Puts each movie into their own tile.
+    *   It is supposed to do the same with the actors and rating but it is updating every tile instead of the single one.
+    */
+    return (
+        &lt;div >
+            &lt;Form onSubmit={Search}>
+                &lt;Form.Group id="searchbar" className="mb-2" controlId="formSearch">
+                    &lt;Form.Control type="text" placeholder="Search movie..." name="search" value={movie}   /*Input fields*/
+                        onChange={(e) => { setMovie(e.target.value) }} />
+                &lt;/Form.Group>
+            &lt;/Form>
+            {data &amp;&amp; data.length > 0 &amp;&amp; &lt;>
+                {data.map((movie, key) => {
+                    return (
+                        &lt;div key={key} className="container">
+                            &lt;div className="row">
+                                &lt;div className="movies">
+                                    &lt;li>
+                                        &lt;h2>{movie.title}&lt;/h2>
+                                        &lt;h2>{movie.description}&lt;/h2>
+                                        &lt;img src={movie.image} alt="Poster">&lt;/img>
+                                        &lt;Button onClick={() => {
+                                            setMovieInfo(movie.id);
+                                        }}>{"Movie info. . ."}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setInfo(null);
+                                        }}>{"Remove info. . ."}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setRmovie(movie.id);
+                                        }}>{"Ratings"}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setRating(null);
+                                        }}>{"Remove Ratings"}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setWatchList(movie.id);
+                                            setImage(movie.image);
+                                            setTitle(movie.title);
+                                        }}>{"Add To watchlist"}
+                                        &lt;/Button>
+                                        {info &amp;&amp; info.length > 0 &amp;&amp; &lt;>
+                                            &lt;table className="table">
+                                                &lt;thead>
+                                                    &lt;tr style={{ border: 'solid' }}>
+                                                        &lt;td>Actor picture&lt;/td>
+                                                        &lt;td>Actor&lt;/td>
+                                                        &lt;td>Character&lt;/td>
+                                                    &lt;/tr>
+                                                &lt;/thead>
+                                                &lt;tbody>
+                                                    {info.map((actors, key) => {
+                                                        return (
+                                                            &lt;tr key={key} >
+                                                                &lt;td>
+                                                                    &lt;img id="actorimg" src={actors.image} alt="Actor">&lt;/img>
+                                                                &lt;/td>
+                                                                &lt;td >{actors.name}&lt;/td>
+                                                                &lt;td >{actors.asCharacter}&lt;/td>
+                                                            &lt;/tr>
+                                                        )
+                                                    })}
+                                                &lt;/tbody>
+                                            &lt;/table>
+                                        &lt;/>}
+                                        {rating &amp;&amp; &lt;>
+                                            &lt;table className="table">
+                                                &lt;tbody>
+                                                    &lt;tr style={{ border: 'solid' }}>
+                                                        &lt;td>Imdb rating&lt;/td>
+                                                        &lt;td>metacritic rating&lt;/td>
+                                                        &lt;td>Rotten Tomatoes&lt;/td>
+                                                    &lt;/tr>
+                                                    &lt;tr key={key} style={{ border: 'solid' }}>
+                                                        &lt;td >{rating.imDb}&lt;/td>
+                                                        &lt;td>{rating.metacritic}&lt;/td>
+                                                        &lt;td>{rating.rottenTomatoes}&lt;/td>
+                                                    &lt;/tr>
+                                                &lt;/tbody>
+                                            &lt;/table>
+                                        &lt;/>}
+                                    &lt;/li>
+                                &lt;/div>
+                            &lt;/div>
+                        &lt;/div>
+                    )
+                })}
+            &lt;/>}
+        &lt;/div>
+    )
+}
+
+
+/**
+* Searches for a movie in imDb database, buttons return movie ratings and actors. Allows to add movies to a watchlist.
+* @param {string} moviename Name of movie 
+* @returns {object} { id: MovieID
+*                     Title : movieTitle
+*                     image: link for poster
+*                      }
+* @returns {object} { image: Link for actor picture 
+*                     Actor-name : actors name
+*                     actorCharacter: Character played as in movie
+*                      }  
+*
+* @param {string} _id specific id for movie in mongoDB
+
+* @returns {object} { status: successfully deleted from watchlist/failed to delete } 
+*   
+* @returns {object} { imDb: rating
+*                     metacritic: rating 
+*                     rottenTomatoes: rating
+*                      } 
+*
+*/
+function WatchList() {
+    let [data, setData] = useState(null);
+    let [watchList, setWatchList] = useState(null);
+    let [info, setInfo] = useState(null);
+    let [movie, setMovie] = useState(null);
+    let [rating, setRating] = useState(null);
+    let [Rmovie, setRmovie] = useState(null);
+    const [error, setError] = useState(null);
+    /* Retrieves watchlist from mongoDB */
+    let WatchList = () => {
+        axios.get(`http://localhost:5678/GetwatchList`).then((response) => {//sends to backend
+            setData(response.data);
+        }).catch(function (error) {
+            // handle error   
+            setError("Error")
+        })
+    }
+
+    /*  Sends movie id to mongoDB and deletes it */
+
+    if (watchList != null) {
+        axios.delete('http://localhost:5678/deletewatchList/' + watchList, {}).then(function (response) {
+            // handle success         
+            console.log("Movie deleted from watchlist");
+            setError(false);
+            alert("Successfully removed!")
+            console.log(watchList);
+            setWatchList(null);
+            WatchList();
+        }).catch(function (error) {
+            // handle error    
+            alert("Already removed!");
+            setError("Unexpected Error");
+        })
+    }
+
+    /* Sends request to retriece actors of a specific movie */
+    if (movie != null) {
+        axios.get('http://localhost:5678/movieInfo/' + movie, {}).then(function (response) {
+            // handle success
+            console.log("move info success");
+            setError(false);
+            setInfo(response.data.actors)
+            console.log(response.data.actors);
+        }).catch(function (error) {
+            // handle error    
+            setError("Unexpected Error")
+        })
+        setMovie(null);
+    }
+    /*  Sends request backend and gets movie ratings from three different sources   */
+    if (Rmovie != null &amp;&amp; info == null) {
+        console.log(Rmovie);
+        axios.get('http://localhost:5678/MovieRating/' + Rmovie, {}).then(function (response) {
+            // handle success
+            console.log("move rating success");
+            setError(false);
+            setRating(response.data)
+            console.log(response.data);
+        }).catch(function (error) {
+            // handle error    
+            setError("Unexpected Error")
+        })
+        setRmovie(null);
+    }
+    useEffect(() => {
+        WatchList()
+    }, [])
+
+    /*  Maps out data retrieved from mongoDB. Puts each movie into their own tile.
+    *   It is supposed to do the same with the actors and rating but it is updating every tile instead of the single one.
+    */
+    return (
+        &lt;div >
+            {data &amp;&amp; data.length > 0 &amp;&amp; &lt;>
+                {data.map((movie, key) => {
+                    return (
+                        &lt;div key={key} className="container">
+                            &lt;div className="row">
+                                &lt;div className="movies">
+                                    &lt;li>
+                                        &lt;h2>{movie.title}&lt;/h2>
+                                        &lt;h2>{movie.rank}&lt;/h2>
+                                        &lt;img src={movie.image} alt="Poster">&lt;/img>
+                                        &lt;Button onClick={() => {
+                                            setMovie(movie.id);
+                                        }}>{"Movie info. . ."}
+                                        &lt;/Button>
+
+                                        &lt;Button onClick={() => {
+                                            setInfo(null);
+                                        }}>{"Remove info. . ."}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setRmovie(movie.id);
+                                        }}>{"Ratings"}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setRating(null);
+                                        }}>{"Remove Ratings"}
+                                        &lt;/Button>
+                                        &lt;Button onClick={() => {
+                                            setWatchList(movie._id);
+                                        }}>{"Remove from watchlist"}
+                                        &lt;/Button>
+                                        {info &amp;&amp; info.length > 0 &amp;&amp; &lt;>
+                                            &lt;table className="table">
+                                                &lt;thead>
+                                                    &lt;tr style={{ border: 'solid' }}>
+                                                        &lt;td>Actor picture&lt;/td>
+                                                        &lt;td>Actor&lt;/td>
+                                                        &lt;td>Character&lt;/td>
+                                                    &lt;/tr>
+                                                &lt;/thead>
+                                                &lt;tbody>
+                                                    {info.map(actors => {
+                                                        return (
+                                                            &lt;tr key={key} >
+                                                                &lt;td>
+                                                                    &lt;img id="actorimg" src={actors.image} alt="Actor">&lt;/img>
+                                                                &lt;/td>
+                                                                &lt;td >{actors.name}&lt;/td>
+                                                                &lt;td >{actors.asCharacter}&lt;/td>
+                                                            &lt;/tr>
+                                                        )
+                                                    })}
+                                                &lt;/tbody>
+                                            &lt;/table>
+                                        &lt;/>}
+                                        {rating &amp;&amp; &lt;>
+                                            &lt;table className="table">
+                                                &lt;tbody>
+                                                    &lt;tr style={{ border: 'solid' }}>
+                                                        &lt;td>Imdb rating&lt;/td>
+                                                        &lt;td>metacritic rating&lt;/td>
+                                                        &lt;td>Rotten Tomatoes&lt;/td>
+                                                    &lt;/tr>
+
+                                                    &lt;tr  style={{ border: 'solid' }}>
+                                                        &lt;td >{rating.imDb}&lt;/td>
+                                                        &lt;td>{rating.metacritic}&lt;/td>
+                                                        &lt;td>{rating.rottenTomatoes}&lt;/td>
+                                                    &lt;/tr>
+                                                &lt;/tbody>
+                                            &lt;/table>
+                                        &lt;/>}
+                                    &lt;/li>
+                                &lt;/div>
+                            &lt;/div>
+                        &lt;/div>
+                    )
+                })}
+            &lt;/>}
+        &lt;/div>
+    )
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#ImdbTop250">ImdbTop250</a></li><li><a href="global.html#MovieSearch">MovieSearch</a></li><li><a href="global.html#WatchList">WatchList</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat May 07 2022 15:18:05 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
